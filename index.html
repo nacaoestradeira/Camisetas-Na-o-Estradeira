@@ -63,6 +63,16 @@ textarea{resize:vertical;min-height:72px;}
 .err-msg{font-size:11px;color:var(--danger);margin-top:5px;display:none;}
 .err-msg.show{display:block;}
 
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.confirm-overlay.open{opacity:1;pointer-events:all;}
+.confirm-box{background:#1a1a1a;border:1px solid var(--danger);border-radius:6px;padding:28px 24px;max-width:360px;width:100%;text-align:center;}
+.confirm-box h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--danger);margin-bottom:10px;}
+.confirm-box p{font-size:13px;color:#a09070;line-height:1.6;margin-bottom:20px;}
+.confirm-actions{display:flex;gap:10px;justify-content:center;}
+.btn-confirmar-exclusao{background:var(--danger);border:none;color:#fff;font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:12px 20px;border-radius:3px;cursor:pointer;}
+.btn-cancelar-exclusao{background:none;border:1.5px solid #333;color:#777;font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:12px 20px;border-radius:3px;cursor:pointer;}
+.edit-delete-btn{width:100%;margin-top:10px;background:none;border:1.5px solid rgba(192,57,43,.4);color:#c0392b;font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:13px;border-radius:3px;cursor:pointer;transition:background .2s,border-color .2s;}
+.edit-delete-btn:hover{background:rgba(192,57,43,.1);border-color:var(--danger);}
 .correios-aviso{display:flex;gap:10px;align-items:flex-start;background:rgba(201,146,42,.08);border:1px solid rgba(201,146,42,.3);border-radius:4px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#c0a060;line-height:1.5;}
 .correios-aviso strong{color:var(--gold-light);display:block;margin-bottom:3px;}
 .tag.manga-tag{background:rgba(100,140,200,.12);border-color:rgba(100,140,200,.35);color:#8ab4e8;}
@@ -526,6 +536,19 @@ hr.gold{border:none;border-top:1px solid #2a2a2a;margin:20px 0;}
     </div>
 
     <button class="edit-save-btn" id="editSaveBtn" onclick="saveEditedPedido()">💾 Salvar alterações</button>
+    <button class="edit-delete-btn" id="editDeleteBtn" onclick="solicitarExclusao()">🗑️ Excluir este pedido</button>
+  </div>
+</div>
+
+<!-- MODAL: CONFIRMAR EXCLUSÃO -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>⚠️ Excluir Pedido</h3>
+    <p>Tem certeza que deseja excluir o pedido de <strong id="confirmNome"></strong>?<br/>Esta ação marca o pedido como excluído e ele deixará de aparecer no consolidado. Os dados são mantidos na planilha por segurança.</p>
+    <div class="confirm-actions">
+      <button class="btn-cancelar-exclusao" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn-confirmar-exclusao" onclick="confirmarExclusao()">Excluir</button>
+    </div>
   </div>
 </div>
 
@@ -840,6 +863,8 @@ function renderTamanhosPorModelo(data) {
 }
 
 function renderConsolidado(data) {
+  // Filtra apenas pedidos ativos (exclui marcados como excluido)
+  data = data.filter(p => p.status !== 'excluido');
   document.getElementById('exportBtn').style.display = data.length ? 'flex' : 'none';
   if (!data.length) {
     document.getElementById('consolContent').innerHTML=`<div class="empty-state"><div class="empty-icon">🏍️</div><p>Nenhum pedido registrado ainda.<br/>Seja o primeiro!</p></div>`;
@@ -940,6 +965,43 @@ function renderConsolidado(data) {
       setTimeout(()=>{ el.style.width=w; },50);
     });
   },50);
+}
+
+// ─── EXCLUSÃO DE PEDIDO ──────────────────────────────
+function solicitarExclusao() {
+  if (!editingPedido) return;
+  document.getElementById('confirmNome').textContent = editingPedido.nome;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+}
+
+async function confirmarExclusao() {
+  if (!editingPedido) return;
+  closeConfirm();
+  const btn = document.getElementById('editDeleteBtn');
+  btn.disabled = true;
+  btn.textContent = 'Excluindo...';
+
+  const payload = {
+    _action: 'delete',
+    id: editingPedido.id
+  };
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+  } catch(e) { console.warn(e); }
+
+  showToast('Pedido excluído com sucesso', 'success');
+  closeEditModal();
+  setTimeout(() => loadConsolidado(), 1200);
 }
 
 // ─── EDIT MODAL ──────────────────────────────────────
