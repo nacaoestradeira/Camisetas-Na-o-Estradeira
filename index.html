@@ -63,6 +63,9 @@ textarea{resize:vertical;min-height:72px;}
 .err-msg{font-size:11px;color:var(--danger);margin-top:5px;display:none;}
 .err-msg.show{display:block;}
 
+.correios-aviso{display:flex;gap:10px;align-items:flex-start;background:rgba(201,146,42,.08);border:1px solid rgba(201,146,42,.3);border-radius:4px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#c0a060;line-height:1.5;}
+.correios-aviso strong{color:var(--gold-light);display:block;margin-bottom:3px;}
+.tag.manga-tag{background:rgba(100,140,200,.12);border-color:rgba(100,140,200,.35);color:#8ab4e8;}
 /* OPT CARDS */
 .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
 .opt-grid.cols1{grid-template-columns:1fr;}
@@ -294,6 +297,10 @@ hr.gold{border:none;border-top:1px solid #2a2a2a;margin:20px 0;}
         <div class="err-msg" id="err-entrega">Selecione a forma de entrega.</div>
       </div>
       <div class="entrega-extra" id="enderecoBox">
+        <div class="correios-aviso">
+          <span style="font-size:16px">⚠️</span>
+          <div><strong>Atenção — Envio pelos Correios</strong><br/>O valor da camiseta será cobrado para confecção. O frete será calculado após a confirmação e informado via WhatsApp — deverá ser pago separadamente antes do envio.</div>
+        </div>
         <div class="field">
           <label>Endereço completo <span class="req">*</span></label>
           <input type="text" id="endereco" placeholder="Rua, número, bairro, cidade, UF"/>
@@ -439,6 +446,14 @@ hr.gold{border:none;border-top:1px solid #2a2a2a;margin:20px 0;}
         <div class="size-chip"><input type="radio" name="m-qtd" id="mq5" value="5"/><label for="mq5">5</label></div>
       </div>
       <div class="err-msg" id="merr-qtd">Selecione a quantidade.</div>
+    </div>
+    <div class="field" style="margin-bottom:8px">
+      <label style="margin-bottom:5px">Manga <span class="req">*</span></label>
+      <div class="opt-grid">
+        <div class="opt-card"><input type="radio" name="m-manga" id="mmg1" value="Curta"/><label for="mmg1" style="padding:9px 13px"><span class="dot"></span>Manga Curta</label></div>
+        <div class="opt-card"><input type="radio" name="m-manga" id="mmg2" value="Longa"/><label for="mmg2" style="padding:9px 13px"><span class="dot"></span>Manga Longa</label></div>
+      </div>
+      <div class="err-msg" id="merr-manga">Selecione o tipo de manga.</div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
@@ -609,11 +624,11 @@ function toggleEditEndereco() {
 // ─── MODAL ITEM (novo pedido) ─────────────────────────
 function openModal(idx=-1) {
   editIndex = idx;
-  ['m-cor','m-modelo','m-tam','m-qtd'].forEach(n => { const c=document.querySelector(`input[name="${n}"]:checked`); if(c) c.checked=false; });
-  ['merr-cor','merr-modelo','merr-tam','merr-qtd'].forEach(id => document.getElementById(id).classList.remove('show'));
+  ['m-cor','m-modelo','m-tam','m-qtd','m-manga'].forEach(n => { const c=document.querySelector(`input[name="${n}"]:checked`); if(c) c.checked=false; });
+  ['merr-cor','merr-modelo','merr-tam','merr-qtd','merr-manga'].forEach(id => document.getElementById(id).classList.remove('show'));
   if (idx >= 0) {
     const p = pedidos[idx];
-    setRadio('m-cor',p.cor); setRadio('m-modelo',p.modelo); setRadio('m-tam',p.tamanho); setRadio('m-qtd',String(p.quantidade));
+    setRadio('m-cor',p.cor); setRadio('m-modelo',p.modelo); setRadio('m-tam',p.tamanho); setRadio('m-qtd',String(p.quantidade)); setRadio('m-manga',p.manga||'Curta');
     document.getElementById('modalTitle').textContent = `Editar Camiseta #${idx+1}`;
   } else {
     document.getElementById('modalTitle').textContent = 'Nova Camiseta';
@@ -631,8 +646,9 @@ function saveItem() {
   [['m-cor','merr-cor'],[null,'merr-modelo'],[null,'merr-tam'],[null,'merr-qtd']].forEach((_,i)=>{});
   const chk=(v,id)=>{ document.getElementById(id).classList.toggle('show',!v); if(!v) ok=false; };
   chk(cor,'merr-cor'); chk(modelo,'merr-modelo'); chk(tamanho,'merr-tam'); chk(qtd,'merr-qtd');
+  const manga=getRadio('m-manga'); chk(manga,'merr-manga');
   if (!ok) return;
-  const item={cor, modelo, tamanho, quantidade:parseInt(qtd)};
+  const item={cor, modelo, tamanho, quantidade:parseInt(qtd), manga};
   if (editIndex>=0) pedidos[editIndex]=item; else pedidos.push(item);
   closeModal(); renderPedidos();
 }
@@ -654,6 +670,7 @@ function renderPedidos() {
         <span class="tag cor-tag ${p.cor.toLowerCase()}">${p.cor}</span>
         <span class="tag">${p.modelo}</span>
         <span class="tag">${p.tamanho}</span>
+        <span class="tag manga-tag">Manga ${p.manga||'Curta'}</span>
         <span class="tag">Qtd: ${p.quantidade}</span>
       </div>`;
     list.appendChild(div);
@@ -679,7 +696,7 @@ function fillSummary() {
     d.innerHTML=`<div class="summary-pedido-title">Camiseta #${i+1}</div>
       <div class="summary-pedido-tags">
         <span class="tag cor-tag ${p.cor.toLowerCase()}">${p.cor}</span>
-        <span class="tag">${p.modelo}</span><span class="tag">${p.tamanho}</span><span class="tag">Qtd: ${p.quantidade}</span>
+        <span class="tag">${p.modelo}</span><span class="tag">${p.tamanho}</span><span class="tag manga-tag">Manga ${p.manga||'Curta'}</span><span class="tag">Qtd: ${p.quantidade}</span>
       </div>`;
     sp.appendChild(d);
   });
@@ -863,6 +880,14 @@ function renderConsolidado(data) {
         </div>`).join('')}
     </div>
     ${renderTamanhosPorModelo(data)}
+    <div class="breakdown"><div class="breakdown-header">✂️ Por Manga</div>
+      ${(()=>{const byM={};data.forEach(p=>p.itens.forEach(i=>{const m=i.manga||'Curta';byM[m]=(byM[m]||0)+i.quantidade;}));return Object.entries(byM).map(([m,qtd])=>`
+        <div class="breakdown-row">
+          <div class="brow-label">Manga ${m}</div>
+          <div class="brow-bar"><div class="brow-fill" style="width:${(qtd/totalUnidades*100).toFixed(0)}%"></div></div>
+          <span class="brow-count">${qtd}</span>
+        </div>`).join('');})()}
+    </div>
     <div class="breakdown"><div class="breakdown-header">📦 Por Entrega</div>
       ${Object.entries(entregaCount).map(([tipo,qtd])=>`
         <div class="breakdown-row">
@@ -900,6 +925,7 @@ function renderConsolidado(data) {
                 <span class="tag cor-tag ${item.cor.toLowerCase()}">${item.cor}</span>
                 <span class="tag">${nomeModelo(item.modelo)}</span>
                 <span class="tag">${item.tamanho}</span>
+                <span class="tag manga-tag">Manga ${item.manga||'Curta'}</span>
                 <span class="tag">Qtd: ${item.quantidade}</span>
               </div>`).join('')}
             ${p.obs?`<div style="margin-top:8px;font-size:12px;color:#7a6a4a;font-style:italic">"${p.obs}"</div>`:''}
@@ -980,12 +1006,19 @@ function renderEditItens() {
           `).join('')}
         </div>
       </div>
-      <div class="field" style="margin-bottom:0">
-        <label>Quantidade <span class="req">*</span></label>
+      <div class="field" style="margin-bottom:8px">
+        <label style="margin-bottom:5px">Quantidade <span class="req">*</span></label>
         <div class="size-grid">
           ${[1,2,3,4,5].map(q=>`
             <div class="size-chip"><input type="radio" name="ei-qtd-${i}" id="eiq-${q}-${i}" value="${q}" ${item.quantidade===q?'checked':''}/><label for="eiq-${q}-${i}">${q}</label></div>
           `).join('')}
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label style="margin-bottom:5px">Manga <span class="req">*</span></label>
+        <div class="opt-grid">
+          <div class="opt-card"><input type="radio" name="ei-manga-${i}" id="eim-c-${i}" value="Curta" ${(item.manga||'Curta')==='Curta'?'checked':''}/><label for="eim-c-${i}" style="padding:9px 13px"><span class="dot"></span>Manga Curta</label></div>
+          <div class="opt-card"><input type="radio" name="ei-manga-${i}" id="eim-l-${i}" value="Longa" ${item.manga==='Longa'?'checked':''}/><label for="eim-l-${i}" style="padding:9px 13px"><span class="dot"></span>Manga Longa</label></div>
         </div>
       </div>`;
     list.appendChild(div);
@@ -1026,9 +1059,9 @@ async function saveEditedPedido() {
   const itens=[];
   let itemOk=true;
   editingItens.forEach((_,i)=>{
-    const cor=getRadio(`ei-cor-${i}`), modelo=getRadio(`ei-mod-${i}`), tamanho=getRadio(`ei-tam-${i}`), qtd=getRadio(`ei-qtd-${i}`);
+    const cor=getRadio(`ei-cor-${i}`), modelo=getRadio(`ei-mod-${i}`), tamanho=getRadio(`ei-tam-${i}`), qtd=getRadio(`ei-qtd-${i}`), manga=getRadio(`ei-manga-${i}`)||'Curta';
     if(!cor||!modelo||!tamanho||!qtd){ itemOk=false; return; }
-    itens.push({cor, modelo, tamanho, quantidade:parseInt(qtd)});
+    itens.push({cor, modelo, tamanho, quantidade:parseInt(qtd), manga});
   });
   if(!itemOk||itens.length===0){ showToast('Preencha todos os campos das camisetas','error'); return; }
 
@@ -1071,7 +1104,7 @@ function exportarPlanilha() {
   data.forEach(p => {
     p.itens.forEach(item => {
       const modelo = nomeModelo(item.modelo);
-      const k = `${item.cor}||${modelo}||${item.tamanho}`;
+      const k = `${item.cor}||${modelo}||${item.tamanho}||${item.manga||'Curta'}`;
       totais[k] = (totais[k] || 0) + item.quantidade;
       totalGeral += item.quantidade;
     });
@@ -1089,7 +1122,7 @@ function exportarPlanilha() {
   aba1.push([
     'Nº', 'Nome', 'WhatsApp', 'Cidade',
     'Entrega', 'Endereço', 'CEP',
-    'Cor', 'Modelo', 'Tamanho', 'Qtd',
+    'Cor', 'Modelo', 'Tamanho', 'Manga', 'Qtd',
     'Observações', 'Data do Pedido', 'Editado em'
   ]);
 
@@ -1110,6 +1143,7 @@ function exportarPlanilha() {
         item.cor,
         nomeModelo(item.modelo),
         item.tamanho,
+        item.manga||'Curta',
         item.quantidade,
         p.obs || '',
         dt,
@@ -1125,7 +1159,7 @@ function exportarPlanilha() {
   aba2.push([]);
 
   // Tabela de resumo por cor/modelo/tamanho
-  aba2.push(['Cor', 'Modelo', 'Tamanho', 'Total de Unidades']);
+  aba2.push(['Cor', 'Modelo', 'Tamanho', 'Manga', 'Total de Unidades']);
 
   const resumoOrdenado = Object.entries(totais).sort((a, b) => {
     const [cA, mA, tA] = a[0].split('||');
@@ -1136,8 +1170,8 @@ function exportarPlanilha() {
   });
 
   resumoOrdenado.forEach(([k, qtd]) => {
-    const [cor, modelo, tamanho] = k.split('||');
-    aba2.push([cor, modelo, tamanho, qtd]);
+    const [cor, modelo, tamanho, manga] = k.split('||');
+    aba2.push([cor, modelo, tamanho, manga, qtd]);
   });
 
   aba2.push(['', '', 'TOTAL GERAL', totalGeral]);
@@ -1176,6 +1210,13 @@ function exportarPlanilha() {
     TAM_ORDEM.filter(t => tams[t]).forEach(t => aba2.push(['  ' + t, '', '', tams[t]]));
     aba2.push([]);
   });
+
+  // Sub-totais por manga
+  aba2.push(['TOTAIS POR MANGA', '', '', '', '']);
+  const byManga = {};
+  data.forEach(p => p.itens.forEach(i => { const m=i.manga||'Curta'; byManga[m]=(byManga[m]||0)+i.quantidade; }));
+  Object.entries(byManga).forEach(([m, qtd]) => aba2.push(['Manga '+m, '', '', '', qtd]));
+  aba2.push([]);
 
   // Sub-totais por entrega
   aba2.push(['TOTAIS POR ENTREGA', '', '', '']);
